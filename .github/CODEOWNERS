@@ -1,0 +1,18 @@
+# CODEOWNERS for Finance Asset Tracking System
+#
+# GitHub checks this file in one of these locations (first match wins):
+# repo root, /.github/CODEOWNERS, or /docs/CODEOWNERS.
+# Convention used here: .github/CODEOWNERS
+#
+# Order matters: rules lower in the file take precedence for files
+# they match. Keep the catch-all first, more specific rules after.
+
+# Default owner — applies to everything not matched below
+* @msfsgh
+
+# Example path-specific rules (uncomment/adjust once the Android
+# project is scaffolded and directory structure is finalized):
+# /app/src/main/java/data/       @msfsgh
+# /app/src/main/java/ui/         @msfsgh
+# *.md                           @msfsgh
+# /.github/                      @msfsgh
