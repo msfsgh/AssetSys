@@ -53,6 +53,77 @@ Short version:
 - View how holdings changed over the last 3 / 6 / 12 months.
 - No direct database/code editing required for routine data entry.
 
+## Build Order (v1)
+
+Recommended phase ordering for implementation. Each phase should be usable
+and testable on its own before moving to the next — this is not a strict
+waterfall, but later phases depend on earlier ones being stable.
+
+1. **Phase 0 — Foundation.** Room/SQLite data model (Portfolio, Asset, Lot,
+   Transaction, CashAccount) with multi-currency and multi-portfolio
+   support built in from the start — not bolted on later. Basic `Migration`
+   class established even for schema v1. Single-activity Compose shell with
+   Navigation Compose and the four bottom-nav tabs (screens can be empty).
+
+2. **Phase 1 — Manual walking skeleton.** Portfolio Management; Cash
+   Account Detail with manual deposit/withdrawal only (no buy/sell
+   settlement yet); Add/Edit Transaction (5-field buy/sell form) without
+   the lot-picker (single-lot buys only); Asset Detail; Dashboard showing
+   grand total + per-portfolio breakdown computed from manually-entered
+   data, using cost basis as value (no live prices yet). This is the
+   smallest end-to-end loop that satisfies the "add an asset in under a
+   minute" success criterion and proves dashboard aggregation, fully
+   offline, before price-fetching is introduced.
+
+3. **Phase 2 — Cost-basis correctness (sells).** Lot Picker step in the
+   sell flow (oldest-first default, user override); partial-sell lot
+   splitting (closed + remaining records); subtraction-method rounding;
+   overselling validation; cross-currency sells. This is the highest-risk
+   financial logic in the app — get it right and unit-tested in isolation
+   before live prices are layered on top, since cost-basis drift is much
+   harder to spot than a stale-price bug.
+
+4. **Phase 3 — Live data.** Pluggable price-provider interface
+   (Google/Yahoo Finance) with foreground polling (30–60s); stale-price
+   indicator and timestamp; offline handling; FX rate integration
+   (exchangerate-api.com + ECB fallback); allocation breakdown chart on
+   the Dashboard (now meaningful with live values). Depends on Phase 1's
+   dashboard and Phase 2's accurate holdings. This is the highest
+   external-risk area (unofficial APIs) — keep it behind the interface so
+   a broken endpoint doesn't take down the rest of the app.
+
+5. **Phase 4 — Corporate actions.** Split Entry screen (manual date +
+   ratio); split adjustment logic for open lots; amendment/audit-trail
+   entries for splits interacting with partial sells. **Blocked on
+   resolving the open fractional-share-handling decision (see Open
+   Decisions) — resolve before starting this phase.** Touches the same lot
+   records as Phase 2, so it's safer to build once that logic is stable.
+
+6. **Phase 5 — Protection & portability.** Transaction ledger encryption
+   at rest (SQLCipher / Jetpack Security); immutable/amendment-based edit
+   model with soft-delete and confirmation; CSV Import/Export; Full Data
+   Export/Import (device migration) gated behind BiometricPrompt;
+   historical snapshots. **Blocked on resolving the open snapshot
+   frequency/trigger decision (see Open Decisions) before implementing the
+   snapshot part of this phase.** Placed after core functionality is
+   correct rather than first, since retrofitting encryption onto a schema
+   that's still actively changing is wasted work.
+
+7. **Phase 6 — Reporting & polish.** Reports tab (gain/loss over a period,
+   allocation breakdown, per-portfolio or combined); Settings tab
+   (provider choice, polling interval, API key management); a performance
+   pass at realistic data volumes (hundreds/thousands of lots and
+   transactions).
+
+**Note:** Phase 2 (cost-basis) is deliberately sequenced before Phase 3
+(live prices) — it's pure logic that can be unit-tested without any
+external dependency, and it's the part most likely to have subtle bugs.
+Phase 5 (encryption) is deliberately sequenced after functional
+correctness rather than first; if development-time peace of mind about
+data-at-rest matters more than avoiding schema churn, this tradeoff can be
+revisited and encryption moved earlier — check with the user before doing
+so.
+
 ## Decisions (settled)
 
 - **Price/balance updates:** Fully automated via API (prices, and account
