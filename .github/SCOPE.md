@@ -1,4 +1,4 @@
-# Scope — Finance Asset Tracking System (v1 / MVP)
+# Scope — Finance Asset Tracking System (Personal) — v1 / MVP
 
 ## In Scope
 

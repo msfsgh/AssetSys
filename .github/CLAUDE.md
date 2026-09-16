@@ -1,4 +1,4 @@
-# Finance Asset Tracking System
+# Finance Asset Tracking System (Personal)
 
 ## Project Goal
 
