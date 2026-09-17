@@ -5,7 +5,30 @@
 
 version: 2
 updates:
-  - package-ecosystem: "npm" # See documentation for possible values
-    directory: "/" # Location of package manifests
+#  - package-ecosystem: "npm" # See documentation for possible values
+#    directory: "/" # Location of package manifests
+#    schedule:
+#      interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/"
     schedule:
       interval: "weekly"
+#    open-pull-requests-limit: 10
+#    rebase-strategy: "auto"
+    commit-message:
+      prefix: "chore"
+    labels:
+      - "dependencies"
+      - "android"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+#    open-pull-requests-limit: 5
+#    rebase-strategy: "auto"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
