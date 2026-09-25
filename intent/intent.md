@@ -20,14 +20,30 @@ A mobile app, for personal use only, that shows:
 - One cash account, but support for more than one stock/ETF portfolio
   (e.g. grouped separately rather than one flat list across portfolios).
   Each portfolio has a custom user-assigned name (e.g. "Retirement",
-  "Brokerage A"). Each portfolio's ledger is fully independent/isolated —
-  no transferring a holding between portfolios in v1
-Stock/ETF holdings are tracked as a transaction ledger, not editable
-snapshots: the user logs each buy/sell event (ticker, quantity, price,
-date), and current position/quantity is calculated from the sum of
-transactions. The ledger is append-only — corrections are made via new
-offsetting transactions, not by editing or deleting past entries, so
-historical trends stay accurate.
+  "Brokerage A"), which can be renamed after creation. A portfolio can
+  also be deleted after creation. Each portfolio's ledger is fully
+  independent/isolated — no transferring a holding between portfolios
+  in v1
+Both cash and stock/ETF holdings are tracked as transaction ledgers, not
+editable snapshots: cash changes are logged as deposit/withdrawal
+entries, and stock/ETF changes are logged as buy/sell events (ticker,
+quantity, price, date). The current cash balance and each stock/ETF
+position update automatically and immediately from the ledger the
+moment a transaction is logged — there is no separate manual balance
+field to keep in sync and no extra step to recalculate. Both ledgers are
+append-only — corrections are made via new offsetting transactions, not
+by editing or deleting past entries, so historical trends stay accurate.
+A sell transaction that would take a position below zero (more shares
+than currently held) is rejected, not allowed.
+A stock/ETF buy or sell transaction automatically creates the matching
+cash movement in the same action — buying withdraws the cost from the
+single shared cash account, selling deposits the proceeds into it — so
+cash and portfolio ledgers always stay in sync with one entry, not two.
+This is the one link between an otherwise-isolated portfolio and the
+cash account: portfolios don't share positions with each other, but they
+all draw from and return to the same cash account. A buy transaction
+that costs more than the current cash balance is rejected, the same way
+an oversell is rejected.
 Stock/ETF prices are fetched on demand — the user triggers a refresh
 (app open / manual pull-to-refresh), anytime during the day or market
 session — via Yahoo Finance (using the unofficial `yfinance`-style
@@ -73,8 +89,10 @@ planned.
 ## Affected users and systems
 - User: me only (single user, personal use — no multi-user/auth-sharing
   needed; access control is just securing the device/app itself)
-- Structure: one cash account; one or more separate stock/ETF portfolios,
-  each holding its own transaction ledger
+- Structure: one cash account with its own deposit/withdrawal ledger;
+  one or more separate, custom-named stock/ETF portfolios, each holding
+  its own transaction ledger; portfolios can be renamed or permanently
+  deleted
 - New system: a mobile app with an on-device local data store (e.g. a
   local SQLite database) — no remote server or hosted backend
 - External dependency: Yahoo Finance, accessed via the unofficial
@@ -94,11 +112,25 @@ planned.
   refresh fails, the app must show last-known prices marked stale, not
   block the view or show nothing
 - The app retains historical data (not just current snapshot) so
-  net-worth and per-holding trends over time can be shown
-- Stock/ETF holdings are recorded as an append-only transaction ledger
-  (buy/sell events); positions are calculated, not directly edited.
-  Mistakes are corrected via new offsetting transactions, never by
-  editing or deleting past entries
+  net-worth and per-holding trends over time can be shown, except where
+  a whole portfolio is deliberately deleted (see below)
+- Both cash and stock/ETF holdings are recorded as append-only
+  transaction ledgers (deposits/withdrawals for cash; buy/sell events
+  for stock/ETF); balances/positions are always calculated from the
+  ledger and update automatically the moment a transaction is logged —
+  never directly edited or set as a separate field. Mistakes are
+  corrected via new offsetting transactions, never by editing or
+  deleting past entries. A sell transaction that would take a position
+  below zero is rejected
+- A stock/ETF buy or sell transaction automatically creates the matching
+  cash withdrawal/deposit in the single shared cash account, in the same
+  action — portfolios are isolated from each other's positions, but all
+  share and draw from the one cash account. A buy that costs more than
+  the current cash balance is rejected
+- Portfolios can be renamed after creation. Deleting a portfolio is a
+  deliberate, permanent action: it erases that portfolio's entire ledger
+  and historical trend data, unlike a within-portfolio correction, which
+  must go through an offsetting transaction rather than deletion
 - Market data comes from Yahoo Finance via unofficial/undocumented access
   (no official Yahoo API exists, so this is not a supported integration).
   Accepted risk: Yahoo can change its site and silently break data
