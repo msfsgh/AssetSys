@@ -27,7 +27,14 @@ A mobile app, for personal use only, that shows:
 Both cash and stock/ETF holdings are tracked as transaction ledgers, not
 editable snapshots: cash changes are logged as deposit/withdrawal
 entries, and stock/ETF changes are logged as buy/sell events (ticker,
-quantity, price, date). The current cash balance and each stock/ETF
+quantity, total cost/amount, date — not a per-share price; per-share
+price, if shown, is derived by dividing total by quantity). The cash
+ledger has four kinds of entries: two generated automatically (a
+withdrawal from a buy, a deposit from a sell) and two entered directly
+by the user (a direct withdrawal — cash leaving the system entirely,
+e.g. spent or transferred out — and a direct deposit — cash entering
+the system, e.g. a paycheck or bank transfer in). The current cash
+balance and each stock/ETF
 position update automatically and immediately from the ledger the
 moment a transaction is logged — there is no separate manual balance
 field to keep in sync and no extra step to recalculate. Both ledgers are
@@ -122,6 +129,11 @@ planned.
   corrected via new offsetting transactions, never by editing or
   deleting past entries. A sell transaction that would take a position
   below zero is rejected
+- The cash ledger supports four entry types: buy-linked withdrawal and
+  sell-linked deposit (both auto-generated, see below), plus direct
+  withdrawal and direct deposit (entered manually, representing cash
+  leaving or entering the system entirely — e.g. spending, a paycheck,
+  or a bank transfer)
 - A stock/ETF buy or sell transaction automatically creates the matching
   cash withdrawal/deposit in the single shared cash account, in the same
   action — portfolios are isolated from each other's positions, but all
