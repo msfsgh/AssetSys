@@ -24,111 +24,131 @@ A mobile app, for personal use only, that shows:
   also be deleted after creation. Each portfolio's ledger is fully
   independent/isolated — no transferring a holding between portfolios
   in v1
-Both cash and stock/ETF holdings are tracked as transaction ledgers, not
-editable snapshots: cash changes are logged as deposit/withdrawal
-entries, and stock/ETF changes are logged as buy/sell events (ticker,
-quantity, total cost/amount, date — not a per-share price; per-share
-price, if shown, is derived by dividing total by quantity). A third
-stock/ETF ledger entry type, split adjustment, handles stock splits: it
-adjusts a holding's quantity by a split ratio as of a given date,
-entered as a single multiplier (e.g. 2.0 for a 2-for-1 split, 0.1 for a
-1-for-10 reverse split), with no cash impact and no effect on total cost
-recorded to date — it only corrects quantity/share-count going forward,
-the same way a buy or sell would, but without a cash-linked transaction.
-A split adjustment for a ticker/portfolio with zero position as of that
-date is rejected, the same way an oversell is rejected — you can't split
-a position you don't hold. If a split and a buy/sell share the same
-effective date, the split is applied first, so the same-day buy/sell is
-interpreted in post-split terms. A wrongly-entered split is corrected
-the same way as any other ledger mistake — via a new offsetting entry,
-here a split adjustment with the reciprocal ratio (e.g. an erroneous 2.0
-is corrected with 0.5) — never by editing or deleting the original entry.
-Split detection is fully manual for v1: the app does not attempt to
-auto-detect splits from Yahoo Finance or any other source. It supports both forward
-splits (e.g. 2-for-1, increasing share count) and reverse splits (e.g.
-1-for-10, decreasing share count), at any ratio, not just whole-number
-multiples — which can produce a fractional share count (e.g. a 3-for-2
-split on an odd number of shares), so stock/ETF quantities support
-fractional/decimal values throughout, not just whole shares. If the
-same ticker is held in more than one portfolio, a split must be logged
-separately in each portfolio that holds it, consistent with portfolios
-being fully isolated ledgers. Stock dividends and spin-offs are different corporate
-actions (a stock dividend issues shares as a dividend rather than
-adjusting existing quantity; a spin-off distributes shares of a
-different company entirely) and are out of scope for v1 — only true
-splits (forward or reverse) are handled. The cash
-ledger has four kinds of entries: two generated automatically (a
-withdrawal from a buy, a deposit from a sell) and two entered directly
-by the user (a direct withdrawal — cash leaving the system entirely,
-e.g. spent or transferred out — and a direct deposit — cash entering
-the system, e.g. a paycheck or bank transfer in). The current cash
-balance and each stock/ETF
-position update automatically and immediately from the ledger the
-moment a transaction is logged — there is no separate manual balance
-field to keep in sync and no extra step to recalculate. Every ledger
-entry has an effective date, and entries of any type (buy, sell, split
-adjustment, direct cash movement) are always applied in date order to
-compute balances/positions and historical trends — not the order they
-were typed in. This means a backdated entry (e.g. a split you forgot to
-log until later) is inserted at its correct point in time and
-recalculates everything from that date forward correctly. Both ledgers are
-append-only — corrections are made via new offsetting transactions, not
-by editing or deleting past entries, so historical trends stay accurate.
-A sell transaction that would take a position below zero (more shares
-than currently held) is rejected, not allowed.
-A stock/ETF buy or sell transaction automatically creates the matching
-cash movement in the same action — buying withdraws the cost from the
-single shared cash account, selling deposits the proceeds into it — so
-cash and portfolio ledgers always stay in sync with one entry, not two.
-This is the one link between an otherwise-isolated portfolio and the
-cash account: portfolios don't share positions with each other, but they
-all draw from and return to the same cash account. A buy transaction
-that costs more than the current cash balance is rejected, the same way
-an oversell is rejected.
-Stock/ETF prices are fetched on demand — the user triggers a refresh
-(app open / manual pull-to-refresh), anytime during the day or market
-session — via Yahoo Finance (using the unofficial `yfinance`-style
-access, since Yahoo has no official public API). This is "current price
-as of last refresh," not a continuous live tick stream. When offline or
-a refresh fails, the app shows the last-known prices, clearly marked as
-stale/offline, rather than blocking the view. Cash balances and holdings
-are entered manually, and updated whenever the user triggers it — no
-fixed schedule, no reminders required for v1. All values are in a single
-currency.
 
-A simple manual export/import (to a file) is included in v1 as a backup
-safety net, since there's no cloud backup by default.
+**Ledger model**
+- Both cash and stock/ETF holdings are tracked as transaction ledgers,
+  not editable snapshots: cash changes are logged as deposit/withdrawal
+  entries, and stock/ETF changes are logged as buy/sell events (ticker,
+  quantity, total cost/amount, date — not a per-share price; per-share
+  price, if shown, is derived by dividing total by quantity)
+- The current cash balance and each stock/ETF position update
+  automatically and immediately from the ledger the moment a
+  transaction is logged — there is no separate manual balance field to
+  keep in sync and no extra step to recalculate
+- Every ledger entry has an effective date, and entries of any type
+  (buy, sell, split adjustment, direct cash movement) are always
+  applied in date order to compute balances/positions and historical
+  trends — not the order they were typed in. This means a backdated
+  entry (e.g. a split you forgot to log until later) is inserted at its
+  correct point in time and recalculates everything from that date
+  forward correctly
+- Both ledgers are append-only — corrections are made via new
+  offsetting transactions, not by editing or deleting past entries, so
+  historical trends stay accurate
+- A sell transaction that would take a position below zero (more shares
+  than currently held) is rejected, not allowed
 
-The app is fully self-contained on the device: both the UI and the local
-data store (holdings, cash balances, history) run on the phone, with no
-remote backend or server-side account. This keeps setup simple and
-minimizes the data's exposure, at the cost of no automatic cross-device
-sync or cloud backup for v1 (data is lost if the device is lost, unless a
-manual export/import feature is added later).
+**Cash ledger entry types**
+- The cash ledger has four kinds of entries: two generated automatically
+  (a withdrawal from a buy, a deposit from a sell) and two entered
+  directly by the user (a direct withdrawal — cash leaving the system
+  entirely, e.g. spent or transferred out — and a direct deposit — cash
+  entering the system, e.g. a paycheck or bank transfer in)
 
-A future version may add support for stock dividends and spin-offs.
-Deferred for now — v1 handles only true stock splits (forward or reverse).
+**Stock/ETF ledger: buy/sell and split adjustment**
+- Buy/sell events capture ticker, quantity, total cost/amount, and date
+- A third stock/ETF ledger entry type, split adjustment, handles stock
+  splits:
+  - Adjusts a holding's quantity by a split ratio as of a given date,
+    entered as a single multiplier (e.g. 2.0 for a 2-for-1 split, 0.1
+    for a 1-for-10 reverse split)
+  - No cash impact and no effect on total cost recorded to date — it
+    only corrects quantity/share-count going forward, the same way a
+    buy or sell would, but without a cash-linked transaction
+  - Supports both forward splits (e.g. 2-for-1, increasing share count)
+    and reverse splits (e.g. 1-for-10, decreasing share count), at any
+    ratio, not just whole-number multiples — which can produce a
+    fractional share count (e.g. a 3-for-2 split on an odd number of
+    shares), so stock/ETF quantities support fractional/decimal values
+    throughout, not just whole shares
+  - A split adjustment for a ticker/portfolio with zero position as of
+    that date is rejected, the same way an oversell is rejected — you
+    can't split a position you don't hold
+  - If a split and a buy/sell share the same effective date, the split
+    is applied first, so the same-day buy/sell is interpreted in
+    post-split terms
+  - A wrongly-entered split is corrected the same way as any other
+    ledger mistake — via a new offsetting entry, here a split
+    adjustment with the reciprocal ratio (e.g. an erroneous 2.0 is
+    corrected with 0.5) — never by editing or deleting the original entry
+  - Split detection is fully manual for v1: the app does not attempt to
+    auto-detect splits from Yahoo Finance or any other source
+  - If the same ticker is held in more than one portfolio, a split must
+    be logged separately in each portfolio that holds it, consistent
+    with portfolios being fully isolated ledgers
+  - Stock dividends and spin-offs are different corporate actions (a
+    stock dividend issues shares as a dividend rather than adjusting
+    existing quantity; a spin-off distributes shares of a different
+    company entirely) and are out of scope for v1 — only true splits
+    (forward or reverse) are handled
 
-A future version may add transferring a holding between portfolios.
-Deferred for now — v1 treats each portfolio's ledger as fully isolated.
+**Buy/sell ↔ cash linkage**
+- A stock/ETF buy or sell transaction automatically creates the
+  matching cash movement in the same action — buying withdraws the cost
+  from the single shared cash account, selling deposits the proceeds
+  into it — so cash and portfolio ledgers always stay in sync with one
+  entry, not two
+- This is the one link between an otherwise-isolated portfolio and the
+  cash account: portfolios don't share positions with each other, but
+  they all draw from and return to the same cash account
+- A buy transaction that costs more than the current cash balance is
+  rejected, the same way an oversell is rejected
 
-A future version may add alerts/notifications (e.g. price threshold or
-portfolio drop alerts). Deferred for now — v1 is view-on-demand only,
-no background monitoring or notifications.
+**Market data & offline behavior**
+- Stock/ETF prices are fetched on demand — the user triggers a refresh
+  (app open / manual pull-to-refresh), anytime during the day or market
+  session — via Yahoo Finance (using the unofficial `yfinance`-style
+  access, since Yahoo has no official public API)
+- This is "current price as of last refresh," not a continuous live
+  tick stream
+- When offline or a refresh fails, the app shows the last-known prices,
+  clearly marked as stale/offline, rather than blocking the view
 
-A future version may add an app-level passcode/biometric unlock (on top
-of the phone's own lock screen) for extra protection of this sensitive
-data. Deferred for now — v1 relies on the device's own lock screen only.
+**Manual entry & currency**
+- Cash balances and holdings are entered manually, and updated whenever
+  the user triggers it — no fixed schedule, no reminders required for v1
+- All values are in a single currency
 
-A future version may add an in-app web-style dashboard view — opened only on
-the same device (e.g. a locally served page or embedded webview), not a
-separate computer/browser — plus automatic account syncing if an
-API/aggregator becomes available. Both are explicitly out of scope for
-v1. Note: this same-device web view does not require cross-device sync
-or a remote backend, and does not change the "on-device only" constraint
-above. A dashboard accessible from a separate computer/browser would
-require a remote backend and is a distinct, larger feature not currently
-planned.
+**Backup**
+- A simple manual export/import (to a file) is included in v1 as a
+  backup safety net, since there's no cloud backup by default
+
+**On-device architecture**
+- The app is fully self-contained on the device: both the UI and the
+  local data store (holdings, cash balances, history) run on the phone,
+  with no remote backend or server-side account. This keeps setup
+  simple and minimizes the data's exposure, at the cost of no automatic
+  cross-device sync or cloud backup for v1 (data is lost if the device
+  is lost, unless a manual export/import feature is added later)
+
+**Deferred to a future version**
+- Support for stock dividends and spin-offs — v1 handles only true
+  stock splits (forward or reverse)
+- Transferring a holding between portfolios — v1 treats each
+  portfolio's ledger as fully isolated
+- Alerts/notifications (e.g. price threshold or portfolio drop alerts)
+  — v1 is view-on-demand only, no background monitoring or notifications
+- An app-level passcode/biometric unlock (on top of the phone's own
+  lock screen) for extra protection of this sensitive data — v1 relies
+  on the device's own lock screen only
+- An in-app web-style dashboard view — opened only on the same device
+  (e.g. a locally served page or embedded webview), not a separate
+  computer/browser — plus automatic account syncing if an
+  API/aggregator becomes available. Note: this same-device web view
+  does not require cross-device sync or a remote backend, and does not
+  change the "on-device only" constraint above. A dashboard accessible
+  from a separate computer/browser would require a remote backend and
+  is a distinct, larger feature not currently planned
 
 ## Affected users and systems
 - User: me only (single user, personal use — no multi-user/auth-sharing
