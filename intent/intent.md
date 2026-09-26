@@ -28,7 +28,35 @@ Both cash and stock/ETF holdings are tracked as transaction ledgers, not
 editable snapshots: cash changes are logged as deposit/withdrawal
 entries, and stock/ETF changes are logged as buy/sell events (ticker,
 quantity, total cost/amount, date — not a per-share price; per-share
-price, if shown, is derived by dividing total by quantity). The cash
+price, if shown, is derived by dividing total by quantity). A third
+stock/ETF ledger entry type, split adjustment, handles stock splits: it
+adjusts a holding's quantity by a split ratio as of a given date,
+entered as a single multiplier (e.g. 2.0 for a 2-for-1 split, 0.1 for a
+1-for-10 reverse split), with no cash impact and no effect on total cost
+recorded to date — it only corrects quantity/share-count going forward,
+the same way a buy or sell would, but without a cash-linked transaction.
+A split adjustment for a ticker/portfolio with zero position as of that
+date is rejected, the same way an oversell is rejected — you can't split
+a position you don't hold. If a split and a buy/sell share the same
+effective date, the split is applied first, so the same-day buy/sell is
+interpreted in post-split terms. A wrongly-entered split is corrected
+the same way as any other ledger mistake — via a new offsetting entry,
+here a split adjustment with the reciprocal ratio (e.g. an erroneous 2.0
+is corrected with 0.5) — never by editing or deleting the original entry.
+Split detection is fully manual for v1: the app does not attempt to
+auto-detect splits from Yahoo Finance or any other source. It supports both forward
+splits (e.g. 2-for-1, increasing share count) and reverse splits (e.g.
+1-for-10, decreasing share count), at any ratio, not just whole-number
+multiples — which can produce a fractional share count (e.g. a 3-for-2
+split on an odd number of shares), so stock/ETF quantities support
+fractional/decimal values throughout, not just whole shares. If the
+same ticker is held in more than one portfolio, a split must be logged
+separately in each portfolio that holds it, consistent with portfolios
+being fully isolated ledgers. Stock dividends and spin-offs are different corporate
+actions (a stock dividend issues shares as a dividend rather than
+adjusting existing quantity; a spin-off distributes shares of a
+different company entirely) and are out of scope for v1 — only true
+splits (forward or reverse) are handled. The cash
 ledger has four kinds of entries: two generated automatically (a
 withdrawal from a buy, a deposit from a sell) and two entered directly
 by the user (a direct withdrawal — cash leaving the system entirely,
@@ -37,7 +65,13 @@ the system, e.g. a paycheck or bank transfer in). The current cash
 balance and each stock/ETF
 position update automatically and immediately from the ledger the
 moment a transaction is logged — there is no separate manual balance
-field to keep in sync and no extra step to recalculate. Both ledgers are
+field to keep in sync and no extra step to recalculate. Every ledger
+entry has an effective date, and entries of any type (buy, sell, split
+adjustment, direct cash movement) are always applied in date order to
+compute balances/positions and historical trends — not the order they
+were typed in. This means a backdated entry (e.g. a split you forgot to
+log until later) is inserted at its correct point in time and
+recalculates everything from that date forward correctly. Both ledgers are
 append-only — corrections are made via new offsetting transactions, not
 by editing or deleting past entries, so historical trends stay accurate.
 A sell transaction that would take a position below zero (more shares
@@ -71,6 +105,9 @@ remote backend or server-side account. This keeps setup simple and
 minimizes the data's exposure, at the cost of no automatic cross-device
 sync or cloud backup for v1 (data is lost if the device is lost, unless a
 manual export/import feature is added later).
+
+A future version may add support for stock dividends and spin-offs.
+Deferred for now — v1 handles only true stock splits (forward or reverse).
 
 A future version may add transferring a holding between portfolios.
 Deferred for now — v1 treats each portfolio's ledger as fully isolated.
@@ -134,6 +171,26 @@ planned.
   withdrawal and direct deposit (entered manually, representing cash
   leaving or entering the system entirely — e.g. spending, a paycheck,
   or a bank transfer)
+- Stock/ETF ledgers support a third entry type beyond buy/sell: a split
+  adjustment, which corrects a holding's quantity for a stock split (no
+  cash impact, no change to previously recorded cost), entered as a
+  single multiplier (e.g. 2.0 for 2-for-1, 0.1 for 1-for-10). Both
+  forward and reverse splits are supported, at any ratio, which may
+  produce fractional share counts — stock/ETF quantities support
+  fractional/decimal values throughout. A split for a ticker/portfolio
+  with zero position at that date is rejected, the same way an oversell
+  is rejected. If a split and a buy/sell share the same effective date,
+  the split applies first. A wrongly-entered split is corrected via an
+  offsetting split adjustment with the reciprocal ratio, never by
+  editing or deleting the original entry. Split detection is fully
+  manual for v1 — no auto-detection from Yahoo Finance or elsewhere. A
+  split affecting a ticker held in more than one
+  portfolio must be logged separately in each. Stock dividends and
+  spin-offs are distinct corporate actions and out of scope for v1
+- Every ledger entry (any type, either ledger) has an effective date and
+  is applied in date order — not entry order — when computing balances,
+  positions, and historical trends, so a backdated entry is correctly
+  inserted at its point in time and recalculates everything from there
 - A stock/ETF buy or sell transaction automatically creates the matching
   cash withdrawal/deposit in the single shared cash account, in the same
   action — portfolios are isolated from each other's positions, but all
