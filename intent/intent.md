@@ -236,6 +236,11 @@ A mobile app, for personal use only, that shows:
   for multiple institutions yet
 
 ## Open questions
-None outstanding. All open questions from the initial draft have been
-resolved (market data provider, update cadence, backup/export) and are
+None outstanding. Every question raised while drafting this intent —
+market data provider, update cadence, backup/export, on-device storage,
+the transaction-ledger data model (cash and stock/ETF), portfolio
+structure and lifecycle (naming, renaming, deletion), buy/sell↔cash
+linkage and rejection rules, offline/stale-price handling, and stock
+split handling (ratio format, fractional shares, cross-portfolio
+logging, same-date ordering, corrections) — has been resolved and is
 reflected in Proposed outcome and Constraints above.
