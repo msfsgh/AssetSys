@@ -103,6 +103,9 @@ A mobile app, for personal use only, that shows:
   they all draw from and return to the same cash account
 - A buy transaction that costs more than the current cash balance is
   rejected, the same way an oversell is rejected
+- A direct cash withdrawal that would take the cash balance below zero
+  is rejected, the same way an oversell or an over-budget buy is
+  rejected
 
 **Market data & offline behavior**
 - Stock/ETF prices are fetched on demand — the user triggers a refresh
@@ -216,6 +219,8 @@ A mobile app, for personal use only, that shows:
   action — portfolios are isolated from each other's positions, but all
   share and draw from the one cash account. A buy that costs more than
   the current cash balance is rejected
+- A direct cash withdrawal that would take the cash balance below zero
+  is rejected, the same way an oversell or an over-budget buy is rejected
 - Portfolios can be renamed after creation. Deleting a portfolio is a
   deliberate, permanent action: it erases that portfolio's entire ledger
   and historical trend data, unlike a within-portfolio correction, which
